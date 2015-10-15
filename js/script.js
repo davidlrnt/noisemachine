@@ -23,7 +23,7 @@
 // a.connect(panNode);
 // panNode.connect(audioCtx.destination);
 
-// var VCF = T("lpf", {cutoff:1600, Q:10}, VCO).play();
+var VCF = T("lpf", {cutoff:1600, Q:10}, VCO).play();
 
 
 
