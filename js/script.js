@@ -101,107 +101,122 @@ return  window.requestAnimationFrame       ||
 })();
 
 
-function playSound(buffer, time) {
-  var source = context.createBufferSource();
-  source.buffer = buffer;
-  source.connect(context.destination);
-  source[source.start ? 'start' : 'noteOn'](time);
-}
+// function playSound(buffer, time) {
+//   var source = context.createBufferSource();
+//   source.buffer = buffer;
+//   source.connect(context.destination);
+//   source[source.start ? 'start' : 'noteOn'](time);
+// }
 
-function loadSounds(obj, soundMap, callback) {
-  // Array-ify
-  var names = [];
-  var paths = [];
-  for (var name in soundMap) {
-    var path = soundMap[name];
-    names.push(name);
-    paths.push(path);
-  }
-  bufferLoader = new BufferLoader(context, paths, function(bufferList) {
-    for (var i = 0; i < bufferList.length; i++) {
-      var buffer = bufferList[i];
-      var name = names[i];
-      obj[name] = buffer;
-    }
-    if (callback) {
-      callback();
-    }
-  });
-  bufferLoader.load();
-}
-
-
+// function loadSounds(obj, soundMap, callback) {
+//   // Array-ify
+//   var names = [];
+//   var paths = [];
+//   for (var name in soundMap) {
+//     var path = soundMap[name];
+//     names.push(name);
+//     paths.push(path);
+//   }
+//   bufferLoader = new BufferLoader(context, paths, function(bufferList) {
+//     for (var i = 0; i < bufferList.length; i++) {
+//       var buffer = bufferList[i];
+//       var name = names[i];
+//       obj[name] = buffer;
+//     }
+//     if (callback) {
+//       callback();
+//     }
+//   });
+//   bufferLoader.load();
+// }
 
 
-function BufferLoader(context, urlList, callback) {
-  this.context = context;
-  this.urlList = urlList;
-  this.onload = callback;
-  this.bufferList = new Array();
-  this.loadCount = 0;
-}
-
-BufferLoader.prototype.loadBuffer = function(url, index) {
-  // Load buffer asynchronously
-  var request = new XMLHttpRequest();
-  request.open("GET", url, true);
-  request.responseType = "arraybuffer";
-
-  var loader = this;
-
-  request.onload = function() {
-    // Asynchronously decode the audio file data in request.response
-    loader.context.decodeAudioData(
-      request.response,
-      function(buffer) {
-        if (!buffer) {
-          alert('error decoding file data: ' + url);
-          return;
-        }
-        loader.bufferList[index] = buffer;
-        if (++loader.loadCount == loader.urlList.length)
-          loader.onload(loader.bufferList);
-      },
-      function(error) {
-        console.error('decodeAudioData error', error);
-      }
-    );
-  }
-
-  request.onerror = function() {
-    alert('BufferLoader: XHR error');
-  }
-
-  request.send();
-};
-
-BufferLoader.prototype.load = function() {
-  for (var i = 0; i < this.urlList.length; ++i)
-  this.loadBuffer(this.urlList[i], i);
-};
 
 
+// function BufferLoader(context, urlList, callback) {
+//   this.context = context;
+//   this.urlList = urlList;
+//   this.onload = callback;
+//   this.bufferList = new Array();
+//   this.loadCount = 0;
+// }
+
+// BufferLoader.prototype.loadBuffer = function(url, index) {
+//   // Load buffer asynchronously
+//   var request = new XMLHttpRequest();
+//   request.open("GET", url, true);
+//   request.responseType = "arraybuffer";
+
+//   var loader = this;
+
+//   request.onload = function() {
+//     // Asynchronously decode the audio file data in request.response
+//     loader.context.decodeAudioData(
+//       request.response,
+//       function(buffer) {
+//         if (!buffer) {
+//           alert('error decoding file data: ' + url);
+//           return;
+//         }
+//         loader.bufferList[index] = buffer;
+//         if (++loader.loadCount == loader.urlList.length)
+//           loader.onload(loader.bufferList);
+//       },
+//       function(error) {
+//         console.error('decodeAudioData error', error);
+//       }
+//     );
+//   }
+
+//   request.onerror = function() {
+//     alert('BufferLoader: XHR error');
+//   }
+
+//   request.send();
+// };
+
+// BufferLoader.prototype.load = function() {
+//   for (var i = 0; i < this.urlList.length; ++i)
+//   this.loadBuffer(this.urlList[i], i);
+// };
 
 
 
 
 
-function OscillatorSample() {
+
+
+function OscillatorSample(obj) {
   this.isPlaying = false;
-}
 
-OscillatorSample.prototype.play = function() {
-  // Create some sweet sweet nodes.
   this.oscillator = context.createOscillator();
-  this.analyser = context.createAnalyser();
+	this.analyser = context.createAnalyser();
+	this.oscillator.type = 'square';
+	this.oscillator.frequency.value = obj.freq; // value in hertz
+
+	this.gainNode = context.createGain();
+	this.gainNode.gain.value = obj.gain;
+	this.gainNode.connect(context.destination);
+	this.oscillator.connect(this.gainNode)
+	this.panNode = context.createStereoPanner();
+	this.panNode.pan.value = obj.pan;
+	this.oscillator.connect(this.panNode);
+	this.panNode.connect(context.destination);
+
 
   // Setup the graph.
-  this.oscillator.connect(this.analyser);
-  this.analyser.connect(context.destination);
+	this.oscillator.connect(this.analyser);
+	this.analyser.connect(context.destination);
 
-  this.oscillator[this.oscillator.start ? 'start' : 'noteOn'](0);
+	this.oscillator[this.oscillator.start ? 'start' : 'noteOn'](obj.wait);
 
   requestAnimFrame(this.visualize.bind(this));
+
+}
+
+OscillatorSample.prototype.play = function(obj) {
+  // Create some sweet sweet nodes.
+ 	
 };
 
 OscillatorSample.prototype.stop = function() {
@@ -219,7 +234,6 @@ OscillatorSample.prototype.changeFrequency = function(val) {
 };
 
 OscillatorSample.prototype.changeDetune = function(val) {
-  this.oscillator.detune.value = val;
 };
 
 OscillatorSample.prototype.changeType = function(type) {
@@ -244,6 +258,11 @@ OscillatorSample.prototype.visualize = function() {
   }
   requestAnimFrame(this.visualize.bind(this));
 };
+// var sample = new OscillatorSample()
+// var sample1 = new OscillatorSample()
+var sample = new OscillatorSample({freq: 50, pan: -1, gain: -0.5, wait: 2});
+var sample1 = new OscillatorSample({freq: 200, pan: 1, gain: -0.5, wait: 1});
+new OscillatorSample({freq: 100, pan: 1, gain: -0.5, wait: 2});
+new OscillatorSample({freq: 600, pan: -1, gain: -1, wait: 1});
+new OscillatorSample({freq: 1200, pan: -1, gain: -1, wait: 2});
 
-
-var sample = new OscillatorSample();
